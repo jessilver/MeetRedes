@@ -1,68 +1,56 @@
 package com.mycompany.Clients;
 
-import java.net.*;
 import java.io.*;
-import java.util.UUID;
+import java.net.*;
+import javax.swing.JOptionPane;
 
-public class Cliente implements Runnable{
+public class Cliente {
 
-    private final int porta;
-    private final Socket socket;
-    private final String id;
-    private  DataInputStream entrada;
-    private  DataOutputStream saida;
+    private Socket socket;
+    private BufferedReader input;
+    private PrintWriter output;
+    private String name;
 
-    public Cliente(int porta) throws IOException {
-        this.socket = new Socket();
-        this.porta = porta;
-        this.id = UUID.randomUUID().toString();
-    }
-
-    public void conectar(String ip) throws IOException {
+    public Cliente(String address, int port,String name) {
         try {
-            InetSocketAddress endereco = new InetSocketAddress(ip, this.porta);
-            this.socket.connect(endereco, 1000);
-            System.out.println("Ip: "+ip+" conectado ao servidor na porta: "+porta);
-            
-            this.entrada = new DataInputStream(socket.getInputStream());
-            this.saida = new DataOutputStream(socket.getOutputStream());
+            socket = new Socket(address, port);
+
+            input = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            output = new PrintWriter(socket.getOutputStream(), true);
+
+            this.name = name;
+        } catch (UnknownHostException e) {
+            JOptionPane.showMessageDialog(null, "Não foi possivel se conectar com o servidor", "Aviso", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+            System.exit(1); // Exit if connection fails
         } catch (IOException e) {
-            System.out.println("Nao foi possivel se conectar ao servidor: "+e);
+            JOptionPane.showMessageDialog(null, "Não foi possivel se conectar com o servidor", "Aviso", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+            System.exit(1); // Exit if connection fails
+        }
+    }
+  
+    public void sendName(String message) {
+        try {
+            output.println("CONNECT: "+message);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    public void enviarMensagem(String mensagem) throws IOException {
-        if (socket.isConnected()) {
-            saida.writeUTF(mensagem);
-            System.out.println("Cliente " + id + " enviou mensagem: " + mensagem);
-        } else {
-            System.out.println("Erro: Cliente não conectado ao servidor!");
+    public void closeConnection() {
+        try {
+            if (input != null) {
+                input.close();
+            }
+            if (output != null) {
+                output.close();
+            }
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    }
-
-    
-    public String getIp() {
-        return this.socket.getInetAddress().getHostAddress();
-    }
-
-    public String getId() {
-        return this.id;
-    }
-
-    public int getPorta() {
-        return this.porta;
-    }
-
-    public Socket getSocket() {
-        return this.socket;
-    }
-
-    public void closeSocket() throws IOException{
-        this.socket.close();
-    }
-
-    @Override
-    public void run() {
-        throw new UnsupportedOperationException("Unimplemented method 'run'");
     }
 }
